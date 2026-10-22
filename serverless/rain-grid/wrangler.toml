@@ -1,0 +1,9 @@
+name = "rain-grid"
+main = "src/index.js"
+compatibility_date = "2024-09-01"
+
+# أنشئ الـ KV أولاً: npx wrangler kv namespace create CACHE
+# ثم ضع الـ id هنا:
+kv_namespaces = [
+  { binding = "CACHE", id = "ضع_ID_هنا" }
+]

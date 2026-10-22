@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>معاينة طبقات خرائط الصحراء — مطر</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="vendor/maplibre-gl.js"></script>
+<link href="vendor/maplibre-gl.css" rel="stylesheet">
+<style>
+  body { margin:0; font-family: -apple-system, "Segoe UI", Tahoma, sans-serif; }
+  #map { position:absolute; inset:0; }
+  #panel { position:absolute; top:10px; right:10px; background:#fff; border-radius:10px;
+           padding:10px 14px; max-height:85vh; overflow:auto; width:240px;
+           box-shadow:0 2px 12px rgba(0,0,0,.25); z-index:10; }
+  #panel h2 { font-size:15px; margin:4px 0 10px; }
+  .grp { margin-bottom:8px; }
+  .grp summary { cursor:pointer; font-weight:600; font-size:13px; padding:4px 0; color:#4a3b28; }
+  label { display:flex; gap:6px; align-items:center; font-size:12.5px; padding:2px 0; }
+  #status { position:absolute; bottom:10px; right:10px; background:rgba(255,255,255,.9);
+            padding:4px 10px; border-radius:8px; font-size:11px; z-index:10; }
+  #err { position:absolute; top:10px; left:10px; max-width:420px; background:#fdecea;
+         border:1px solid #f5c6c0; color:#a94442; padding:8px 12px; border-radius:8px;
+         font-size:12px; white-space:pre-wrap; z-index:20; display:none; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="panel"><h2>طبقات الصحراء <span id="cnt"></span></h2><div id="layers">جارِ التحميل…</div></div>
+<div id="status">zoom: <span id="z"></span></div>
+<div id="err"></div>
+<script>
+const MARTIN = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+  ? 'http://localhost:3000' : '/tiles';
+const errBox = document.getElementById('err');
+function fail(msg) { errBox.style.display = 'block'; errBox.textContent = 'تعذر التحميل: ' + msg; }
+window.onerror = (m, s, l) => fail(m + ' @' + (s||'').split('/').pop() + ':' + l);
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: { version: 8,
+    glyphs: 'https://demotiles.maplibre.org/glyphs/{fontstack}/{range}.pbf',
+    sources: {}, layers: [{ id: 'bg', type: 'background',
+    paint: { 'background-color': '#f5f1e8' } }] },
+  center: [46.68, 24.71], zoom: 6, hash: true
+});
+map.addControl(new maplibregl.NavigationControl(), 'bottom-left');
+map.on('zoom', () => document.getElementById('z').textContent = map.getZoom().toFixed(1));
+
+const LINE_COLOR = ['match', ['get','class'],
+  'فيضة','#1f78b4','وادي','#4a90c2','شعب','#7b68a6','روضة','#3c9a5f','سبخة','#8a6d3b','#8bb8d8'];
+
+function addBasemap() {
+  try {
+    map.addSource('basemap', { type: 'vector', url: MARTIN + '/basemap' });
+    map.addLayer({ id: 'roads', source: 'basemap', 'source-layer': 'transportation',
+      type: 'line',
+      paint: { 'line-color': ['match', ['get','class'],
+        'motorway','#e08a3c','trunk','#e8a35c','primary','#f0bc7d',
+        'secondary','#d8cfbf','tertiary','#ddd6c8','#e5dfd2'],
+        'line-width': ['interpolate',['linear'],['zoom'],6,0.4,10,1.2,14,2.5] } });
+    map.addLayer({ id: 'roads_names', source: 'basemap', 'source-layer': 'transportation_name',
+      type: 'symbol', minzoom: 8,
+      layout: { 'text-field': ['get','name'], 'text-size': 10, 'symbol-placement': 'line' },
+      paint: { 'text-color': '#8a7a5a', 'text-halo-color': '#f5f1e8', 'text-halo-width': 1.5 } });
+  } catch (e) { console.warn('تخطي الأساس:', e.message); }
+}
+
+async function jget(url, ms = 8000) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { signal: ctl.signal });
+    if (!r.ok) throw new Error(url + ' → HTTP ' + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+async function boot() {
+  const cat = await jget(MARTIN + '/catalog');
+  const fns = Object.keys(cat.tiles || {}).filter(k => k !== 'basemap');
+  document.getElementById('cnt').textContent = `(${fns.length})`;
+
+  let meta = [];
+  try { meta = await jget('http://localhost:8000/api/v1/layers', 2500); } catch (_) {}
+  const AR = { waterways:'الأودية والمجاري', settlements:'التجمعات السكانية', peaks:'القمم الجبلية',
+    wells:'آبار المياه', fuel_stations:'محطات الوقود', wetlands:'الأراضي الرطبة', scrub:'الشجيرات',
+    water_bodies:'المياه السطحية', dams:'السدود', craters:'الفوهات', cairns:'علامات الدلالة',
+    antennas:'أبراج الاتصالات', viewpoints:'نقاط المنظر', archaeology:'المواقع الأثرية',
+    protected_areas:'المناطق المحمية', farmland:'الأراضي الزراعية', education:'جامعات وكليات',
+    cemeteries:'مقابر', military_areas:'مناطق عسكرية', telecom_offices:'مكاتب اتصالات',
+    utilities:'مرافق', industrial_areas:'مناطق صناعية', slopes:'انحدارات' };
+  const GROUPS = { waterways:'المياه', water_bodies:'المياه', wetlands:'المياه', dams:'المياه',
+    settlements:'الأماكن', peaks:'التضاريس', craters:'التضاريس', slopes:'التضاريس', scrub:'التضاريس',
+    wells:'النقاط الحيوية', cairns:'النقاط الحيوية', fuel_stations:'النقاط الحيوية', antennas:'النقاط الحيوية',
+    viewpoints:'المعالم', archaeology:'المعالم', protected_areas:'المعالم', farmland:'المعالم',
+    education:'المعالم', cemeteries:'المعالم', military_areas:'المعالم', telecom_offices:'النقاط الحيوية',
+    utilities:'النقاط الحيوية', industrial_areas:'المعالم' };
+  const metaMap = Object.fromEntries((Array.isArray(meta) ? meta : []).map(m => [m.key, m]));
+
+  addBasemap();
+
+  const groups = {};
+  for (const key of fns) {
+    const m = metaMap[key] || {};
+    const grp = m.group_ar || GROUPS[key] || 'أخرى';
+    (groups[grp] = groups[grp] || []).push({ key, name: m.name_ar || AR[key] || key });
+    const onByDefault = key === 'waterways';
+    try {
+      map.addSource(key, { type: 'vector', tiles: [`${MARTIN}/${key}/{z}/{x}/{y}`],
+        minzoom: m.minzoom || 7, maxzoom: 16 });
+      const type = m.geom_type === 'point' ? 'circle' : m.geom_type === 'polygon' ? 'fill' : 'line';
+      const layer = { id: key, source: key, 'source-layer': key, type,
+        layout: { visibility: onByDefault ? 'visible' : 'none' } };
+      if (type === 'line') { layer.paint = { 'line-color': key === 'waterways' ? LINE_COLOR : '#a08c6a', 'line-width': 1.4 }; }
+      else if (type === 'fill') { layer.paint = { 'fill-color': m.style?.fill || '#b7c48a', 'fill-opacity': m.style?.fill_opacity ?? 0.3 }; }
+      else { layer.paint = { 'circle-color': '#b3541e', 'circle-radius': 3, 'circle-stroke-width': 1, 'circle-stroke-color': '#fff' }; }
+      map.addLayer(layer);
+    } catch (e) { console.warn('تخطي', key, e.message); }
+  }
+
+  const box = document.getElementById('layers');
+  box.innerHTML = '';
+  for (const [grp, items] of Object.entries(groups)) {
+    const det = document.createElement('details');
+    det.className = 'grp'; det.open = true;
+    det.innerHTML = `<summary>${grp}</summary>`;
+    for (const it of items) {
+      const lb = document.createElement('label');
+      lb.innerHTML = `<input type="checkbox" data-k="${it.key}"> ${it.name}`;
+      det.appendChild(lb);
+    }
+    box.appendChild(det);
+  }
+  box.onchange = e => {
+    const k = e.target.dataset.k;
+    map.setLayoutProperty(k, 'visibility', e.target.checked ? 'visible' : 'none');
+  };
+  map.on('click', k => new maplibregl.Popup().setLngLat(k.lngLat)
+    .setHTML(`<div dir="rtl" style="font-family:Tahoma">${JSON.stringify(k.point)}</div>`).addTo(map));
+}
+boot().catch(e => { console.error(e); fail(e.message || e); });
+</script>
+</body>
+</html>

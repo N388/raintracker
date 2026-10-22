@@ -1,0 +1,40 @@
+# أسرار وبيئة
+.env
+.env.*
+!.env.example
+
+# بايثون
+__pycache__/
+*.pyc
+.venv/
+
+# node
+node_modules/
+.next/
+out/
+apps/web/out/
+
+# بيانات خام/ثقيلة — لا تدخل المستودع (تُبنى محلياً أو تُولَّد)
+data/*
+!data/grids/
+!data/tiles/
+data/tiles/*
+!data/tiles/cache/
+data/tiles/cache/*
+!data/tiles/cache/sa_mask.npy.gz
+analysis/
+*.pmtiles
+*.pbf
+*.zip
+*.tif
+*.sqlite
+
+# بيانات خام ضخمة غير لازمة للنشر
+data/tiles/ndvi_cog.tif
+data/tiles/season_history.json
+
+# نظام
+.DS_Store
+*.log
+nohup.out
+/tmp/

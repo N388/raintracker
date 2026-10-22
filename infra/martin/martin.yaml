@@ -1,0 +1,44 @@
+listen_addresses: '0.0.0.0:3000'
+base_path: /
+
+# بلاطات المتجهات من وظائف PostGIS (mvt_* في الهجرات 003-005)
+postgres:
+  connection_string: ${DATABASE_URL}
+  auto_publish: false
+  functions:
+    waterways:      { schema: public, function: mvt_waterways,      minzoom: 6,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    settlements:    { schema: public, function: mvt_settlements,    minzoom: 6,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    peaks:          { schema: public, function: mvt_peaks,          minzoom: 9,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    wells:          { schema: public, function: mvt_wells,          minzoom: 10, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    wetlands:       { schema: public, function: mvt_wetlands,       minzoom: 9,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    scrub:          { schema: public, function: mvt_scrub,          minzoom: 9,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    water_bodies:   { schema: public, function: mvt_water_bodies,   minzoom: 9,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    dams:           { schema: public, function: mvt_dams,           minzoom: 11, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    craters:        { schema: public, function: mvt_craters,        minzoom: 10, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    fuel_stations:  { schema: public, function: mvt_fuel_stations,  minzoom: 10, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    cairns:         { schema: public, function: mvt_cairns,         minzoom: 12, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    antennas:       { schema: public, function: mvt_antennas,       minzoom: 11, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    viewpoints:     { schema: public, function: mvt_viewpoints,     minzoom: 11, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    archaeology:    { schema: public, function: mvt_archaeology,    minzoom: 12, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    protected_areas: { schema: public, function: mvt_protected_areas,minzoom: 9,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    farmland:       { schema: public, function: mvt_farmland,       minzoom: 11, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    slopes:         { schema: public, function: mvt_slopes,         minzoom: 11, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    education:      { schema: public, function: mvt_education,      minzoom: 12, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    cemeteries:     { schema: public, function: mvt_cemeteries,     minzoom: 12, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    military_areas: { schema: public, function: mvt_military_areas, minzoom: 11, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    telecom_offices: { schema: public, function: mvt_telecom_offices,minzoom: 12, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    utilities:      { schema: public, function: mvt_utilities,      minzoom: 13, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    industrial_areas: { schema: public, function: mvt_industrial_areas, minzoom: 12, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+
+# خريطة الأساس (OSM → Planetiler/OpenMapTiles)
+    tracks:         { schema: public, function: mvt_tracks,         minzoom: 7,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    fords:          { schema: public, function: mvt_fords,          minzoom: 8,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    passes:         { schema: public, function: mvt_passes,         minzoom: 10, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    helipads:       { schema: public, function: mvt_helipads,       minzoom: 10, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    dunes:          { schema: public, function: mvt_dunes,          minzoom: 8,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    ridgelines:     { schema: public, function: mvt_ridgelines,     minzoom: 8,  maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    springs:        { schema: public, function: mvt_springs,        minzoom: 11, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+    caves:          { schema: public, function: mvt_caves,          minzoom: 11, maxzoom: 16, bounds: [34.4, 15.0, 55.6, 32.3] }
+
+pmtiles:
+  paths: /data/basemap.pmtiles

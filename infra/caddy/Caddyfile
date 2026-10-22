@@ -1,0 +1,40 @@
+{
+	{$domain := env "DOMAIN"}
+	{$api := env "API_UPSTREAM"}
+
+	(header_security) {
+		header {
+			-Server
+			-X-Powered-By
+			Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https://*.tile.openstreetmap.org; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://*.tile.openstreetmap.org; font-src 'self' data:; worker-src 'self' blob:;"
+			Referrer-Policy "strict-origin-when-cross-origin"
+			X-Content-Type-Options "nosniff"
+			X-Frame-Options "DENY"
+			Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=()"
+			Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		}
+	}
+
+	{$domain} {
+		import header_security
+
+		handle /api/* {
+			reverse_proxy api:8000
+		}
+
+		handle /tiles/* {
+			uri strip_prefix /tiles
+			reverse_proxy martin:3000 titiler:8000
+		}
+
+		handle {
+			reverse_proxy web:3000
+		}
+
+		log {
+			output stdout
+			format json
+			level INFO
+		}
+	}
+}

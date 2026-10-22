@@ -1,0 +1,8 @@
+{
+  "name": "rain-grid",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "geotiff": "^2.1.3"
+  }
+}

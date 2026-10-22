@@ -1,0 +1,125 @@
+name: raintracker
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
+      NEXT_PUBLIC_TILES_URL: ${NEXT_PUBLIC_TILES_URL:-/tiles}
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8080:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://rain:${POSTGRES_PASSWORD}@db:5432/rain
+      REDIS_URL: redis://cache:6379/0
+      CHIRPS_PROXY: http://host.docker.internal:8891
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+    volumes:
+      - ./data/tiles:/data
+
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    command: arq app.worker.WorkerSettings
+    environment:
+      DATABASE_URL: postgresql+asyncpg://rain:${POSTGRES_PASSWORD}@db:5432/rain
+      REDIS_URL: redis://cache:6379/0
+      CHIRPS_PROXY: http://host.docker.internal:8891
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+    volumes:
+      - ./data/tiles:/data
+
+  db:
+    image: postgis/postgis:16-3.5-alpine
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: rain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: rain
+    volumes:
+      # bind mount على قرص الماك: Docker.raw ممتلئ بمجلدات قديمة (يُراجع تنظيفها)
+      - ./data/pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rain -d rain"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # بلا تخزين دائم: الكاش فقط
+
+  martin:
+    image: ghcr.io/maplibre/martin:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    command: --config /config/martin.yaml
+    environment:
+      DATABASE_URL: postgresql://rain:${POSTGRES_PASSWORD}@db:5432/rain
+    volumes:
+      - ./infra/martin/martin.yaml:/config/martin.yaml:ro
+      - ./data/tiles:/data
+    depends_on:
+      - db
+
+  titiler:
+    image: ghcr.io/developmentseed/titiler:latest
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./data/tiles:/data
+
+  # معاينة ثابتة عبر HTTP (تتجنب قيود file:// مع fetch)
+  preview:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "8099:80"
+    volumes:
+      - ./scripts/preview:/usr/share/nginx/html:ro
+
+volumes:
+  caddy_data:
+  caddy_config:

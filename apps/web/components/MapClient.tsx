@@ -540,12 +540,21 @@ export default function MapClient() {
       }
       b.textContent = cur;
     };
-    const onMove = (e: maplibregl.MapMouseEvent) => place(e.lngLat.lng, e.lngLat.lat, e.point.x, e.point.y);
+    const onMove = (e: maplibregl.MapMouseEvent) => { lastMouseAt = Date.now(); place(e.lngLat.lng, e.lngLat.lat, e.point.x, e.point.y); };
+    // على الشاشات اللمسية لا تُطلق أحداث الفأرة أثناء السحب — نتبع مركز الشاشة مع كل حركة خريطة
+    const onMapMove = () => {
+      if (Date.now() - lastMouseAt < 1500) return;   // الفأرة نشطة حديثاً — الأولوية لها
+      const c = map.getCenter();
+      const p = map.project([c.lng, c.lat]);
+      place(c.lng, c.lat, p.x, p.y);
+    };
+    let lastMouseAt = 0;
     const c = map.getCenter();
     const p0 = map.project([c.lng, c.lat]);
     place(c.lng, c.lat, p0.x, p0.y);
     map.on("mousemove", onMove);
-    return () => { map.off("mousemove", onMove); };
+    map.on("move", onMapMove);
+    return () => { map.off("mousemove", onMove); map.off("move", onMapMove); };
   }, [picker]);
 
   const pickQuick = useCallback((days: number) => {
@@ -654,7 +663,7 @@ export default function MapClient() {
 
       {/* روضات الفترة */}
       {rawdatOpen && (
-        <div className={`absolute top-[19rem] right-3 z-20 ${panel} rounded-2xl shadow-lg p-3 w-64 text-sm max-h-[46vh] overflow-auto`}>
+        <div className={`absolute top-[19rem] right-3 z-20 ${panel} rounded-2xl shadow-lg p-3 w-[min(16rem,86vw)] text-sm max-h-[46vh] overflow-auto`}>
           <button className="float-left opacity-50" onClick={() => setRawdatOpen(false)}>✕</button>
           <h3 className="font-bold mb-2">روضات وفيضات الفترة</h3>
           <div className="flex gap-1 mb-2">
@@ -678,7 +687,7 @@ export default function MapClient() {
 
       {/* دفتر ملاحظات المختبرين */}
       {notesOpen && (
-        <div className={`absolute top-[19rem] right-3 z-20 ${panel} rounded-2xl shadow-lg p-3 w-64 text-sm max-h-[50vh] overflow-auto`}>
+        <div className={`absolute top-[19rem] right-3 z-20 ${panel} rounded-2xl shadow-lg p-3 w-[min(16rem,86vw)] text-sm max-h-[50vh] overflow-auto`}>
           <div className="flex items-center justify-between mb-2">
             <h3 className="font-bold">دفتر التجربة</h3>
             <div className="flex gap-1">
@@ -717,7 +726,7 @@ export default function MapClient() {
 
       {/* لوحة الوسم */}
       {seasonOpen && season && (
-        <div className={`absolute top-3 left-3 mt-11 z-20 ${panel} rounded-2xl shadow-lg p-3 w-64 text-sm`}>
+        <div className={`absolute top-3 left-3 mt-11 z-20 ${panel} rounded-2xl shadow-lg p-3 w-[min(16rem,86vw)] text-sm`}>
           <button className="float-left opacity-50" onClick={() => setSeasonOpen(false)}>✕</button>
           <h3 className="font-bold mb-2">موسم الوسم {new Date().getFullYear()}</h3>
           {!season.current.started ? (
@@ -749,7 +758,7 @@ export default function MapClient() {
 
       {/* لوحة أعلى المناطق */}
       {topOpen && (
-        <div className={`absolute top-[19rem] left-3 z-20 ${panel} rounded-2xl shadow-lg p-3 w-64 text-sm max-h-[46vh] overflow-auto`}>
+        <div className={`absolute top-[19rem] left-3 z-20 ${panel} rounded-2xl shadow-lg p-3 w-[min(16rem,86vw)] text-sm max-h-[46vh] overflow-auto`}>
           <button className="float-left opacity-50" onClick={() => setTopOpen(false)}>✕</button>
           <h3 className="font-bold mb-2">أعلى المناطق ({period.key === "wasm" ? "الوسم" : "الفترة"})</h3>
           {topList.length === 0 && <div className="opacity-60 text-xs">جارٍ الحساب…</div>}
@@ -774,7 +783,7 @@ export default function MapClient() {
       )}
 
       {/* البحث */}
-      <div className="absolute top-3 left-3 z-20 w-64">
+      <div className="absolute top-3 left-3 z-20 w-[min(16rem,70vw)]">
         <input value={query} onChange={e => doSearch(e.target.value)}
           placeholder="مدينة، واد، جبل، فيضة… أو 24.7,46.7"
           className={`w-full ${panel} rounded-xl shadow-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-sky-500`} />
@@ -915,7 +924,7 @@ export default function MapClient() {
 
       {/* نافذة النقطة */}
       {point && (
-        <div className={`absolute top-3 left-3 ${panel} rounded-2xl shadow-lg p-3 w-64 z-20 text-sm`}>
+        <div className={`absolute top-3 left-3 ${panel} rounded-2xl shadow-lg p-3 w-[min(16rem,86vw)] z-20 text-sm`}>
           <button className="float-left opacity-50" onClick={() => setPoint(null)}>✕</button>
           <div className="font-mono text-[11px] mb-1 opacity-70" dir="ltr">{point.lat.toFixed(4)}, {point.lon.toFixed(4)}</div>
           <div className="text-xs mb-2 opacity-80">

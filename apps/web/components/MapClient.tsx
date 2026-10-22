@@ -882,9 +882,9 @@ export default function MapClient() {
               <button onClick={() => shiftDay(-1)} disabled={daily.date <= "1981-01-01"}
                 title="اليوم السابق"
                 className={`w-7 h-7 rounded-full text-base font-bold leading-none ${daily.date <= "1981-01-01" ? "opacity-30" : chip}`}>‹</button>
-              <input type="date" value={daily.date} min="1981-01-01" max={yesterday()}
+              <input type="date" dir="ltr" value={daily.date} min="1981-01-01" max={yesterday()}
                 onChange={e => e.target.value && setDaily(d => ({ ...d, date: e.target.value }))}
-                className={`text-xs border rounded-lg px-1.5 py-1 ${panel}`} />
+                className={`text-xs border rounded-lg px-1.5 py-1 ${panel}`} style={{ direction: "ltr", textAlign: "center" }} />
               <button onClick={() => shiftDay(1)} disabled={daily.date >= yesterday()}
                 title="اليوم التالي"
                 className={`w-7 h-7 rounded-full text-base font-bold leading-none ${daily.date >= yesterday() ? "opacity-30" : chip}`}>›</button>

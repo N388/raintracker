@@ -9,7 +9,7 @@ import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import { wasmWindow, fetchPointWindows, fetchGrid, gridToCanvas, gridToCanvasHighlight, vmaxOf, fetchForecast7d, fetchRadarLatest, GRID } from "./rain";
 import rahalStyle from "../lib/rahal-style.json";
 
-maplibregl.setRTLTextPlugin("/vendor/rtl-text.js", true); // تشكيل العربية واتجاهها الصحيح
+maplibregl.setRTLTextPlugin(`${process.env.NEXT_PUBLIC_BASEPATH ?? ""}/vendor/rtl-text.js`, true); // تشكيل العربية واتجاهها الصحيح
 
 // يشتق تلقائياً من اسم المضيف: يعمل محلياً وعبر الشبكة المنزلية دون إعداد
 const HOST = typeof window !== "undefined" ? window.location.hostname : "localhost";
